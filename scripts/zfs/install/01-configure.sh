@@ -38,9 +38,12 @@ select_disk () {
 		select ENTRY in $(ls /dev/disk/by-id/);
 		do
 		    DISKS+=( "/dev/disk/by-id/$ENTRY" )
+			if ${#DISKS[@]} -ge $disk_choice ]
+			then
+				break
+			fi
 			#echo "$DISK" > /tmp/disk
-			#echo "Installing on $ENTRY."
-			break
+			#echo "Installing on $ENTRY"
 		done
     done
     echo "Will use ${DISKS[@]}."
@@ -153,7 +156,7 @@ export_pool () {
 import_pool () {
     print "Import zpool"
     zpool import -d /dev/disk/by-id -R /mnt zroot -N -f
-    zfs load-key zroot
+    #zfs load-key zroot
 }
 
 mount_system () {
@@ -187,7 +190,7 @@ disk_reply=$(menu 1 2)
 DISKS=()
 
 select_disk
-zfs_passphrase
+#zfs_passphrase
 
 # If first install
 if [[ $install_reply == "first" ]]
