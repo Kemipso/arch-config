@@ -50,7 +50,7 @@ select_disk () {
 }
 
 wipe () {
-    ask "Do you want to wipe all datas on ${DISK[@]} ?"
+    ask "Do you want to wipe all datas on ${DISKS[@]} ?"
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
 		for DISK in ${DISKS[@]}
@@ -95,11 +95,8 @@ zfs_passphrase () {
 }
 
 create_pool () {
-    # ZFS part
-	for DISK in ${DISKS[@]}
-	do
-		ZFS="${ZFS} ${DISK}-part3"
-    done
+    # ZFS partitions name (append -part3 to each disk)
+	ZFS=( "${DISKS[@]/%/-part3}" )
     
     # Create ZFS pool
     print "Create ZFS pool"
