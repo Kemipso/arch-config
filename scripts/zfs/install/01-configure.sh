@@ -38,7 +38,7 @@ select_disk () {
 		select ENTRY in $(ls /dev/disk/by-id/);
 		do
 		    DISKS+=( "/dev/disk/by-id/$ENTRY" )
-			if ${#DISKS[@]} -ge $disk_choice ]
+			if [ ${#DISKS[@]} -ge $disk_choice ]
 			then
 				break
 			fi
