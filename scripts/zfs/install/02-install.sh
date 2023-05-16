@@ -34,13 +34,12 @@ pacstrap /mnt       \
   linux-lts         \
   linux-lts-headers \
   linux-firmware    \
-  intel-ucode       \
+  amd-ucode       \
   efibootmgr        \
-  vim               \
+  neovim               \
   git               \
   ansible           \
-  iwd               \
-  wpa_supplicant
+  mesa
 
 # Generate fstab excluding ZFS entries
 print "Generate fstab excluding ZFS entries"
@@ -67,9 +66,9 @@ echo 'LANG="fr_FR.UTF-8"' > /mnt/etc/locale.conf
 # Prepare initramfs
 print "Prepare initramfs"
 cat > /mnt/etc/mkinitcpio.conf <<"EOF"
-MODULES=(i915 intel_agp)
+MODULES=(amdgpu radeon)
 BINARIES=()
-FILES=(/etc/zfs/zroot.key)
+FILES=()
 HOOKS=(base udev autodetect modconf block keyboard keymap zfs filesystems)
 COMPRESSION="zstd"
 EOF
@@ -84,7 +83,6 @@ EOF
 print "Copy ZFS files"
 cp /etc/hostid /mnt/etc/hostid
 cp /etc/zfs/zpool.cache /mnt/etc/zfs/zpool.cache
-cp /etc/zfs/zroot.key /mnt/etc/zfs
 
 ### Configure username
 print 'Set your username'
@@ -156,7 +154,7 @@ EOF
 
 # Configure network
 print "Configure networking"
-cat > /mnt/etc/systemd/network/enoX.network <<"EOF"
+cat > /mnt/etc/systemd/network/eno1.network <<"EOF"
 [Match]
 Name=en*
 
@@ -168,28 +166,8 @@ IPForward=yes
 UseDNS=no
 RouteMetric=10
 EOF
-cat > /mnt/etc/systemd/network/wlX.network <<"EOF"
-[Match]
-Name=wl*
-
-[Network]
-DHCP=ipv4
-IPForward=yes
-
-[DHCP]
-UseDNS=no
-RouteMetric=20
-EOF
 systemctl enable systemd-networkd --root=/mnt
 systemctl disable systemd-networkd-wait-online --root=/mnt
-
-mkdir /mnt/etc/iwd
-cat > /mnt/etc/iwd/main.conf <<"EOF"
-[General]
-UseDefaultInterface=true
-EnableNetworkConfiguration=true
-EOF
-systemctl enable iwd --root=/mnt
 
 # Configure DNS
 print "Configure DNS"

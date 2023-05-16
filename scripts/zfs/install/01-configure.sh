@@ -32,44 +32,54 @@ tests () {
 }
 
 select_disk () {
-    # Set DISK
-    select ENTRY in $(ls /dev/disk/by-id/);
+    for disk_choice in {1..$disk_reply}
     do
-        DISK="/dev/disk/by-id/$ENTRY"
-        echo "$DISK" > /tmp/disk
-        echo "Installing on $ENTRY."
-        break
+		# Set DISK
+		select ENTRY in $(ls /dev/disk/by-id/);
+		do
+		    DISKS+=( "/dev/disk/by-id/$ENTRY" )
+			#echo "$DISK" > /tmp/disk
+			#echo "Installing on $ENTRY."
+			break
+		done
     done
+    echo "Will use ${DISKS[@]}."
 }
 
 wipe () {
-    ask "Do you want to wipe all datas on $ENTRY ?"
+    ask "Do you want to wipe all datas on ${DISK[@]} ?"
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-        # Clear disk
-        dd if=/dev/zero of="$DISK" bs=512 count=1
-        wipefs -af "$DISK"
-        sgdisk -Zo "$DISK"
+		for DISK in ${DISKS[@]}
+		do
+		    # Clear disk(s)
+            dd if=/dev/zero of="$DISK" bs=512 count=1
+            wipefs -af "$DISK"
+            sgdisk -Zo "$DISK"
+		done
     fi
 }
 
 partition () {
-    # EFI part
-    print "Creating EFI part"
-    sgdisk -n1:1M:+512M -t1:EF00 "$DISK"
-    EFI="$DISK-part1"
-    
-    # ZFS part
-    print "Creating ZFS part"
-    sgdisk -n3:0:0 -t3:bf01 "$DISK"
-    
-    # Inform kernel
-    partprobe "$DISK"
-    
-    # Format efi part
-    sleep 1
-    print "Format EFI part"
-    mkfs.vfat "$EFI"
+    for DISK in ${DISKS[@]}
+    do
+		# EFI part
+		print "Creating EFI part"
+		sgdisk -n1:1M:+512M -t1:EF00 "$DISK"
+		EFI="$DISK-part1"
+		
+		# ZFS part
+		print "Creating ZFS part"
+		sgdisk -n3:0:0 -t3:bf01 "$DISK"
+		
+		# Inform kernel
+		partprobe "$DISK"
+		
+		# Format efi part
+		sleep 1
+		print "Format EFI part"
+		mkfs.vfat "$EFI"
+    done
 }
 
 zfs_passphrase () {
@@ -83,20 +93,19 @@ zfs_passphrase () {
 
 create_pool () {
     # ZFS part
-    ZFS="$DISK-part3"
+	for DISK in ${DISKS[@]}
+	do
+		ZFS="${ZFS} ${DISK}-part3"
+    done
     
     # Create ZFS pool
     print "Create ZFS pool"
     zpool create -f -o ashift=12                          \
-                 -o autotrim=on                           \
                  -O acltype=posixacl                      \
                  -O compression=zstd                      \
                  -O relatime=on                           \
                  -O xattr=sa                              \
                  -O dnodesize=legacy                      \
-                 -O encryption=aes-256-gcm                \
-                 -O keyformat=passphrase                  \
-                 -O keylocation=file:///etc/zfs/zroot.key \
                  -O normalization=formD                   \
                  -O mountpoint=none                       \
                  -O canmount=off                          \
@@ -154,7 +163,7 @@ mount_system () {
     
     # Mount EFI part
     print "Mount EFI part"
-    EFI="$DISK-part1"
+    EFI="${DISKS[0]}-part1"
     mkdir -p /mnt/efi
     mount "$EFI" /mnt/efi
 }
@@ -172,6 +181,10 @@ tests
 
 print "Is this the first install or a second install to dualboot ?"
 install_reply=$(menu first dualboot)
+
+print "How many drives do you want in your zfs stripe?"
+disk_reply=$(menu 1 2)
+DISKS=()
 
 select_disk
 zfs_passphrase
