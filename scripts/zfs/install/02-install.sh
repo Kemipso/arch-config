@@ -31,8 +31,8 @@ print "Install Arch Linux"
 pacstrap /mnt       \
   base              \
   base-devel        \
-  linux-lts         \
-  linux-lts-headers \
+  linux         \
+  linux-headers \
   linux-firmware    \
   amd-ucode       \
   efibootmgr        \
@@ -73,11 +73,11 @@ HOOKS=(base udev autodetect modconf block keyboard keymap zfs filesystems)
 COMPRESSION="zstd"
 EOF
 
-cat > /mnt/etc/mkinitcpio.d/linux-lts.preset <<"EOF"
+cat > /mnt/etc/mkinitcpio.d/linux.preset <<"EOF"
 ALL_config="/etc/mkinitcpio.conf"
-ALL_kver="/boot/vmlinuz-linux-lts"
+ALL_kver="/boot/vmlinuz-linux"
 PRESETS=('default')
-default_image="/boot/initramfs-linux-lts.img"
+default_image="/boot/initramfs-linux.img"
 EOF
 
 print "Copy ZFS files"
